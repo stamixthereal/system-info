@@ -2,3 +2,4 @@ requests>=2.27.1
 psutil>=5.9.0
 PyAutoGUI>=0.9.53
 telebot>=0.0.4
+python-dotenv>=0.19.2
