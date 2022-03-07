@@ -163,7 +163,6 @@ def get_all_information():
 
     main_comp_info = get_system_info()
     list_of_keys = list(main_comp_info.keys())
-    global file_name
     file_name = f'system_info__{main_comp_info.get(list_of_keys[4])}.txt'
     profile_info = ''
     rus_names = ['Все профили пользователей', 'Содержимое ключа']
