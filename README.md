@@ -11,7 +11,7 @@ automatically sent to your telegram bot.
 2. Configure your Telegram bot. Add there two variables: **TOKEN**, **CHAT_ID**
     >![img.png](media/img.png) 
 3. Then run this command to compile your script to EXE:
-   >```pyinstaller --onefile --windowed --icon=console.ico main.pyw```
+   >```pyinstaller --onefile --windowed --icon=media/console.ico main.pyw```
 ***
 # Notice
 Don't use this script for bad purposes. But if you really want... :)
