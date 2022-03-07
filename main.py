@@ -168,7 +168,7 @@ def get_all_information():
     rus_names = ['Все профили пользователей', 'Содержимое ключа']
     eng_names = ['All User Profile', 'Key Content']
 
-    profiles_data = subprocess.check_output('netsh wlan show profiles').decode('CP866').split('\n')
+    profiles_data = subprocess.check_output(['netsh', 'wlan', 'show', 'profiles']).decode('CP866').split('\n')
     profiles = [i.split(':')[1].strip() for i in profiles_data if rus_names[0] in i or eng_names[0] in i]
 
     for profile in profiles:
